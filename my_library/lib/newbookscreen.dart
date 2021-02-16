@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'user.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 class NewBookScreen extends StatefulWidget {
   final User user;
@@ -12,13 +14,12 @@ class NewBookScreen extends StatefulWidget {
 
 class _NewBookScreenState extends State<NewBookScreen> {
   double screenHeight, screenWidth;
-
+  File _image;
+  String pathAsset = "assets/images/uum.png";
   @override
   Widget build(BuildContext context) {
     screenHeight = MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
-    File _image;
-    String pathAsset = "assets/images/uum.png";
 
     return MaterialApp(
         title: 'Material App',
@@ -31,8 +32,9 @@ class _NewBookScreenState extends State<NewBookScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
+                  Center(),
                   GestureDetector(
-                      onTap: () => {},
+                      onTap: () => {_onPictureSelection()},
                       child: Container(
                         height: screenHeight / 3.2,
                         width: screenWidth / 1.8,
@@ -52,10 +54,43 @@ class _NewBookScreenState extends State<NewBookScreen> {
                               ),
                         ),
                       )),
+                  SizedBox(height: 5),
+                  Text("Click image to take picture",
+                      style: TextStyle(fontSize: 12.0, color: Colors.black)),
+                  SizedBox(height: 5),
+                  TextField(
+                      keyboardType: TextInputType.text,
+                      decoration: InputDecoration(
+                          labelText: 'Book Title', icon: Icon(Icons.book))),
+                  TextField(
+                      keyboardType: TextInputType.text,
+                      decoration: InputDecoration(
+                          labelText: 'Book Description',
+                          icon: Icon(Icons.notes))),
+                  SizedBox(height: 15),
+                  MaterialButton(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0)),
+                    minWidth: screenWidth / 1.2,
+                    height: 50,
+                    child: Text('Insert New Book'),
+                    color: Colors.blueAccent,
+                    textColor: Colors.white,
+                    elevation: 15,
+                    onPressed: _insertNewBookDialog,
+                  ),
                 ],
               ),
             ),
           ),
         ));
+  }
+
+  void _insertNewBookDialog() {}
+
+  _onPictureSelection() async {
+    _image = await ImagePicker.pickImage(
+        source: ImageSource.camera, maxHeight: 800, maxWidth: 800);
+    setState(() {});
   }
 }
