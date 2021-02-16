@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_library/loginscreen.dart';
 
 void main() => runApp(MyApp());
 
@@ -6,15 +7,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Material App',
+      title: 'My Library',
       home: Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                "assets/images/uum.jpg",
-                scale: 2,
+                "assets/images/uum.png",
+                scale: 2.5,
               ),
               SizedBox(
                 height: 20,
@@ -46,7 +47,12 @@ class _ProgressIndicatorState extends State<ProgressIndicator>
     animation = Tween(begin: 0.0, end: 1.0).animate(controller)
       ..addListener(() {
         setState(() {
-          if (animation.value > 0.99) {}
+          if (animation.value > 0.99) {
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (BuildContext context) => LoginScreen()));
+          }
         });
       });
     controller.repeat();
