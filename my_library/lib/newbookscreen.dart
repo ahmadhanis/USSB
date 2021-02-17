@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'user.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:toast/toast.dart';
+import 'package:http/http.dart' as http;
+import 'package:progress_dialog/progress_dialog.dart';
 
 class NewBookScreen extends StatefulWidget {
   final User user;
@@ -16,6 +20,16 @@ class _NewBookScreenState extends State<NewBookScreen> {
   double screenHeight, screenWidth;
   File _image;
   String pathAsset = "assets/images/uum.png";
+  List<String> listType = [
+    "Novel",
+    "Education",
+    "Magazine",
+    "Other",
+  ];
+  String selectedType;
+  TextEditingController booktitlectrl = new TextEditingController();
+  TextEditingController bookdescctrl = new TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     screenHeight = MediaQuery.of(context).size.height;
@@ -59,11 +73,45 @@ class _NewBookScreenState extends State<NewBookScreen> {
                       style: TextStyle(fontSize: 12.0, color: Colors.black)),
                   SizedBox(height: 5),
                   TextField(
+                      controller: booktitlectrl,
                       keyboardType: TextInputType.text,
                       decoration: InputDecoration(
                           labelText: 'Book Title', icon: Icon(Icons.book))),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.menu_book, color: Colors.grey),
+                      SizedBox(width: 15),
+                      DropdownButton(
+                        hint: Text(
+                          'Book Type',
+                          style: TextStyle(
+                            color: Color.fromRGBO(253, 72, 13, 50),
+                          ),
+                        ),
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedType = newValue;
+                            print(selectedType);
+                          });
+                        },
+                        value: selectedType,
+                        items: listType.map((selectedType) {
+                          return DropdownMenuItem(
+                            child: new Text(
+                              selectedType,
+                            ),
+                            value: selectedType,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                   TextField(
-                      keyboardType: TextInputType.text,
+                      controller: bookdescctrl,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 5,
+                      minLines: 5,
                       decoration: InputDecoration(
                           labelText: 'Book Description',
                           icon: Icon(Icons.notes))),
@@ -86,11 +134,142 @@ class _NewBookScreenState extends State<NewBookScreen> {
         ));
   }
 
-  void _insertNewBookDialog() {}
+  void _insertNewBookDialog() {
+    String booktitle = booktitlectrl.text.toString();
+    String bookdesc = bookdescctrl.text.toString();
+    print(selectedType);
+    if (booktitle.isEmpty || bookdesc.isEmpty) {
+      Toast.show(
+        "Please enter your book title and description",
+        context,
+        duration: Toast.LENGTH_LONG,
+        gravity: Toast.TOP,
+      );
+      return;
+    }
+    if (selectedType == null) {
+      Toast.show(
+        "Please select book type",
+        context,
+        duration: Toast.LENGTH_LONG,
+        gravity: Toast.TOP,
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text(
+            "Insert new book?",
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          content: new Text(
+            "Are your sure? ",
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
+          actions: <Widget>[
+            // usually buttons at the bottom of the dialog
+            new FlatButton(
+              child: new Text(
+                "Yes",
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              ),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                insertBook(booktitle, bookdesc);
+              },
+            ),
+            new FlatButton(
+              child: new Text(
+                "No",
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void insertBook(String booktitle, String bookdesc) {
+    ProgressDialog pr = new ProgressDialog(context,
+        type: ProgressDialogType.Normal, isDismissible: false);
+    pr.style(message: "Registration...");
+    pr.show();
+    String base64Image = base64Encode(_image.readAsBytesSync());
+    http.post("https://slumberjer.com/mylibrary/php/insertbook.php", body: {
+      "email": widget.user.email,
+      "booktitle": booktitle,
+      "booktype": selectedType,
+      "bookdesc": bookdesc,
+      "encoded_string": base64Image,
+    }).then((res) {
+      print(res.body);
+      pr.hide();
+      if (res.body == "success") {
+        Toast.show(
+          "Insert Success",
+          context,
+          duration: Toast.LENGTH_LONG,
+          gravity: Toast.TOP,
+        );
+      } else {
+        Toast.show(
+          "Insert Failed",
+          context,
+          duration: Toast.LENGTH_LONG,
+          gravity: Toast.TOP,
+        );
+      }
+    }).catchError((err) {
+      print(err);
+    });
+  }
 
   _onPictureSelection() async {
     _image = await ImagePicker.pickImage(
         source: ImageSource.camera, maxHeight: 800, maxWidth: 800);
+    _cropImage();
     setState(() {});
+  }
+
+  Future<Null> _cropImage() async {
+    File croppedFile = await ImageCropper.cropImage(
+        sourcePath: _image.path,
+        aspectRatioPresets: Platform.isAndroid
+            ? [
+                CropAspectRatioPreset.square,
+              ]
+            : [
+                CropAspectRatioPreset.square,
+              ],
+        androidUiSettings: AndroidUiSettings(
+            toolbarTitle: 'Resize',
+            toolbarColor: Colors.deepOrange,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: false),
+        iosUiSettings: IOSUiSettings(
+          title: 'Cropper',
+        ));
+    if (croppedFile != null) {
+      _image = croppedFile;
+      setState(() {});
+    }
   }
 }
