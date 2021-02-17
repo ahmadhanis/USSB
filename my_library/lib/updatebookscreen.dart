@@ -1,35 +1,44 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'user.dart';
+import 'book.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:toast/toast.dart';
 import 'package:http/http.dart' as http;
 import 'package:progress_dialog/progress_dialog.dart';
 
-class NewBookScreen extends StatefulWidget {
-  final User user;
+class UpdateBookScreen extends StatefulWidget {
+  final Book book;
 
-  const NewBookScreen({Key key, this.user}) : super(key: key);
+  const UpdateBookScreen({Key key, this.book}) : super(key: key);
+
   @override
-  _NewBookScreenState createState() => _NewBookScreenState();
+  _UpdateBookScreenState createState() => _UpdateBookScreenState();
 }
 
-class _NewBookScreenState extends State<NewBookScreen> {
+class _UpdateBookScreenState extends State<UpdateBookScreen> {
   double screenHeight, screenWidth;
   File _image;
   String pathAsset = "assets/images/uum.png";
   List<String> listType = [
     "Novel",
     "Education",
-    "Magazine",
     "Fiction",
+    "Magazine",
     "Other",
   ];
   String selectedType;
   TextEditingController booktitlectrl = new TextEditingController();
   TextEditingController bookdescctrl = new TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    booktitlectrl.text = widget.book.title;
+    bookdescctrl.text = widget.book.description;
+    selectedType = widget.book.type;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +49,7 @@ class _NewBookScreenState extends State<NewBookScreen> {
         title: 'My Library',
         home: Scaffold(
           appBar: AppBar(
-            title: Text('New Book'),
+            title: Text('Edit Book'),
           ),
           body: Padding(
             padding: EdgeInsets.fromLTRB(30, 10, 30, 10),
@@ -122,11 +131,11 @@ class _NewBookScreenState extends State<NewBookScreen> {
                         borderRadius: BorderRadius.circular(20.0)),
                     minWidth: screenWidth / 1.2,
                     height: 50,
-                    child: Text('Insert New Book'),
+                    child: Text('Update Book'),
                     color: Colors.blueAccent,
                     textColor: Colors.white,
                     elevation: 15,
-                    onPressed: _insertNewBookDialog,
+                    onPressed: _updateBookDialog,
                   ),
                 ],
               ),
@@ -135,7 +144,7 @@ class _NewBookScreenState extends State<NewBookScreen> {
         ));
   }
 
-  void _insertNewBookDialog() {
+  void _updateBookDialog() {
     String booktitle = booktitlectrl.text.toString();
     String bookdesc = bookdescctrl.text.toString();
     print(selectedType);
@@ -163,7 +172,7 @@ class _NewBookScreenState extends State<NewBookScreen> {
         // return object of type Dialog
         return AlertDialog(
           title: new Text(
-            "Insert new book?",
+            "Update this book?",
             style: TextStyle(
               color: Colors.black,
             ),
@@ -187,7 +196,7 @@ class _NewBookScreenState extends State<NewBookScreen> {
               ),
               onPressed: () async {
                 Navigator.of(context).pop();
-                insertBook(booktitle, bookdesc);
+                updateBook(booktitle, bookdesc);
               },
             ),
             new FlatButton(
@@ -207,14 +216,14 @@ class _NewBookScreenState extends State<NewBookScreen> {
     );
   }
 
-  void insertBook(String booktitle, String bookdesc) {
+  void updateBook(String booktitle, String bookdesc) {
     ProgressDialog pr = new ProgressDialog(context,
         type: ProgressDialogType.Normal, isDismissible: false);
     pr.style(message: "Registration...");
     pr.show();
     String base64Image = base64Encode(_image.readAsBytesSync());
-    http.post("https://slumberjer.com/mylibrary/php/insertbook.php", body: {
-      "email": widget.user.email,
+    http.post("https://slumberjer.com/mylibrary/php/updatebook.php", body: {
+      "bookid": widget.book.bookid,
       "booktitle": booktitle,
       "booktype": selectedType,
       "bookdesc": bookdesc,
@@ -224,14 +233,14 @@ class _NewBookScreenState extends State<NewBookScreen> {
       pr.hide();
       if (res.body == "success") {
         Toast.show(
-          "Insert Success",
+          "Update Success",
           context,
           duration: Toast.LENGTH_LONG,
           gravity: Toast.TOP,
         );
       } else {
         Toast.show(
-          "Insert Failed",
+          "Update Failed",
           context,
           duration: Toast.LENGTH_LONG,
           gravity: Toast.TOP,
